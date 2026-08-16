@@ -289,6 +289,76 @@ export function formatNumber(value: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Comment finding + update (optional overwrite behaviour)
+// ---------------------------------------------------------------------------
+
+/** Marker comment embedded in the body so we can identify our own comments. */
+const BOT_COMMENT_MARKER = '<!-- pi-coding-agent-comment -->';
+
+/** A minimal projection of a GitHub issue/PR comment. */
+export interface CommentRef {
+  id: number;
+  body: string;
+}
+
+/**
+ * Find the most recent comment authored by this action on the current issue/PR.
+ *
+ * We identify our own comments by embedding {@link BOT_COMMENT_MARKER} at the
+ * start of the body — this is resilient to footer changes and avoids matching
+ * unrelated bot comments.
+ *
+ * @returns The most recent matching comment (or `undefined` if none found).
+ */
+export async function findPreviousBotComment(
+  deps: GitHubModuleDeps
+): Promise<CommentRef | undefined> {
+  const issueNumber = deps.context.issue.number;
+  if (!issueNumber) {
+    return undefined;
+  }
+
+  const { owner, repo } = deps.context.repo;
+  const comments = await deps.octokit.rest.issues.listComments({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    per_page: 100,
+  });
+
+  // Most recent first (GitHub returns newest-first by default).
+  const found = comments.data.find(c => c.body?.startsWith(BOT_COMMENT_MARKER));
+  if (!found) {
+    return undefined;
+  }
+  return { id: found.id, body: found.body ?? '' };
+}
+
+/**
+ * Update an existing comment authored by this action, identified by `commentId`.
+ *
+ * @param commentId - The GitHub comment id to update.
+ * @returns The Octokit response, or `undefined` if `body` is empty.
+ */
+export async function updateBotComment(
+  deps: GitHubModuleDeps,
+  commentId: number,
+  body: string
+): Promise<RestEndpointMethodTypes['issues']['updateComment']['response'] | undefined> {
+  if (!body) {
+    return;
+  }
+
+  const { owner, repo } = deps.context.repo;
+  return deps.octokit.rest.issues.updateComment({
+    owner,
+    repo,
+    comment_id: commentId,
+    body,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 
@@ -297,6 +367,12 @@ export function formatNumber(value: number): string {
  *
  * Automatically appends a "View action run" link pointing to the GitHub Actions
  * run that produced the comment, along with optional Pi metadata.
+ *
+ * When `deps.updateComment` is true, the function first attempts to find and
+ * update the bot's previous comment (identified by the
+ * {@link BOT_COMMENT_MARKER} prefix) via `issues.updateComment`. If no prior
+ * comment is found, or when `updateComment` is false, it creates a new
+ * comment via `issues.createComment`.
  *
  * @param deps - Module dependencies.
  * @param body - The Markdown body of the comment.
@@ -315,5 +391,18 @@ export async function createFinalComment(
   const footer = buildMetadataFooter(deps, metadata);
   const finalBody = footer ? `${body}\n\n---\n\n${footer}` : body;
 
-  return createComment(deps, finalBody);
+  // Optionally overwrite the bot's previous comment instead of creating a new one.
+  if (deps.updateComment) {
+    const prev = await findPreviousBotComment(deps);
+    if (prev) {
+      deps.logger.debug(`[comments] updating previous bot comment ${prev.id}`);
+      const updatedBody = `${BOT_COMMENT_MARKER}\n${finalBody}`;
+      await updateBotComment(deps, prev.id, updatedBody);
+      return;
+    }
+  }
+
+  // Embed the marker so subsequent runs can find + overwrite this comment.
+  const markedBody = `${BOT_COMMENT_MARKER}\n${finalBody}`;
+  return createComment(deps, markedBody);
 }

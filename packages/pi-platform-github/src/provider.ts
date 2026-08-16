@@ -198,6 +198,11 @@ export interface GitHubPlatformDeps {
    * When omitted, uses the default template.
    */
   branchNameTemplate?: string;
+  /**
+   * Whether to update/overwrite the bot's previous comment on the
+   * issue/PR instead of creating a new one.
+   */
+  updateComment?: boolean;
 }
 
 /**
@@ -236,6 +241,7 @@ export function createGitHubPlatformProvider(deps: GitHubPlatformDeps): Platform
     ...(deps.branchNameTemplate !== undefined
       ? { branchNameTemplate: deps.branchNameTemplate }
       : {}),
+    ...(deps.updateComment !== undefined ? { updateComment: deps.updateComment } : {}),
   };
 
   return {

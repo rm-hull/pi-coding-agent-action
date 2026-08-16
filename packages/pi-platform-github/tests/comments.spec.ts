@@ -543,3 +543,133 @@ describe('createFinalComment', () => {
     expect(result).toBeUndefined();
   });
 });
+
+describe('createFinalComment with updateComment', () => {
+  test('updates previous bot comment when updateComment is true and comment exists', async () => {
+    const mockUpdateComment = vi.fn(() =>
+      Promise.resolve({
+        data: {
+          id: 42,
+          body: 'updated body',
+          html_url: 'https://github.com/test-owner/test-repo/issues/123#issuecomment-42',
+        },
+        headers: {},
+        status: 200,
+        url: '',
+      })
+    );
+    const mockListComments = vi.fn(() =>
+      Promise.resolve({
+        data: [
+          { id: 42, body: '<!-- pi-coding-agent-comment -->\nprevious response' },
+          { id: 43, body: 'some other comment' },
+        ],
+        headers: {},
+        status: 200,
+        url: '',
+      })
+    );
+
+    const deps = {
+      ...createTestDeps(),
+      updateComment: true,
+      octokit: {
+        rest: {
+          issues: {
+            createComment: vi.fn(),
+            listComments: mockListComments,
+            updateComment: mockUpdateComment,
+          },
+          pulls: {
+            createReplyForReviewComment: vi.fn(),
+          },
+        },
+      } as any,
+    };
+
+    await createFinalComment(deps, 'New response', {});
+
+    expect(mockListComments).toHaveBeenCalled();
+    expect(mockUpdateComment).toHaveBeenCalled();
+    const updateCall = mockUpdateComment.mock.calls[0] as unknown[] | undefined;
+    expect(updateCall).toBeDefined();
+    const callArg0 = updateCall![0] as {
+      owner: string;
+      repo: string;
+      comment_id: number;
+      body: string;
+    };
+    expect(callArg0).toMatchObject({
+      owner: 'test-owner',
+      repo: 'test-repo',
+      comment_id: 42,
+      body: expect.stringContaining('New response'),
+    });
+    expect(callArg0.body).toContain('<!-- pi-coding-agent-comment -->');
+  });
+
+  test('creates new comment when updateComment is true but no previous bot comment exists', async () => {
+    const mockListComments = vi.fn(() =>
+      Promise.resolve({
+        data: [{ id: 43, body: 'some other comment' }],
+        headers: {},
+        status: 200,
+        url: '',
+      })
+    );
+
+    const deps = {
+      ...createTestDeps(),
+      updateComment: true,
+      octokit: {
+        rest: {
+          issues: {
+            createComment: vi.fn(() =>
+              Promise.resolve({ data: { id: 99 }, headers: {}, status: 201, url: '' })
+            ),
+            listComments: mockListComments,
+            updateComment: vi.fn(),
+          },
+          pulls: {
+            createReplyForReviewComment: vi.fn(),
+          },
+        },
+      } as any,
+    };
+
+    await createFinalComment(deps, 'New response', {});
+
+    expect(mockListComments).toHaveBeenCalled();
+    expect(deps.octokit.rest.issues.createComment).toHaveBeenCalled();
+    expect(deps.octokit.rest.issues.updateComment).not.toHaveBeenCalled();
+  });
+
+  test('creates new comment when updateComment is false', async () => {
+    const mockListComments = vi.fn();
+
+    const deps = {
+      ...createTestDeps(),
+      updateComment: false,
+      octokit: {
+        rest: {
+          issues: {
+            createComment: vi.fn(() =>
+              Promise.resolve({ data: { id: 99 }, headers: {}, status: 201, url: '' })
+            ),
+            listComments: mockListComments,
+            updateComment: vi.fn(),
+          },
+          pulls: {
+            createReplyForReviewComment: vi.fn(),
+          },
+        },
+      } as any,
+    };
+
+    await createFinalComment(deps, 'New response', {});
+
+    expect(mockListComments).not.toHaveBeenCalled();
+    expect(deps.octokit.rest.issues.createComment).toHaveBeenCalled();
+    expect(deps.octokit.rest.issues.updateComment).not.toHaveBeenCalled();
+  });
+});

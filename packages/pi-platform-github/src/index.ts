@@ -49,7 +49,14 @@ export {
 } from './reactions';
 
 // Comment creation functions (used by run.ts)
-export { createFinalComment, formatExecutionTime, formatNumber } from './comments';
+export {
+  createFinalComment,
+  updateBotComment,
+  findPreviousBotComment,
+  type CommentRef,
+  formatExecutionTime,
+  formatNumber,
+} from './comments';
 
 // Tool implementations (used by git-adapter and provider)
 export {

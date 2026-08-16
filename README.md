@@ -258,6 +258,49 @@ You can also call a `workflow_dispatch` from another workflow step, e.g. to auto
 > [!TIP]
 > Combine `pr_number` with other inputs like `thinking_level`, `loaded_tools`, or `extensions` to customize the review behavior. For example, use `loaded_tools` to restrict the agent to read-only tools when you only want feedback without automatic fixes.
 
+### Comment Update Mode
+
+When running the action in automated workflows (e.g. PR reviews on `pull_request: [opened, synchronize]`), each push creates a new commit, which can result in many incremental comments from the bot cluttering the PR thread. By default, each run posts a new top-level comment.
+
+Set `update_comment: true` to instruct the action to **update/overwrite its previous comment** instead of creating a new one. The action identifies its prior comments by looking for a hidden HTML marker (`<!-- pi-coding-agent-comment -->`) embedded at the start of the comment body, so it will not touch comments authored by other users or bots.
+
+```yaml
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: shaftoe/pi-coding-agent-action@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          provider: ${{ vars.PROVIDER }}
+          model: ${{ vars.MODEL }}
+          token: ${{ secrets.API_KEY }}
+          prompt: "Review this PR for bugs and security concerns."
+          update_comment: true
+```
+
+Behavior notes:
+
+- **Opt-in**: defaults to `false`, so existing workflows are unaffected.
+- **Fallback**: if `update_comment` is `true` but no previous bot comment is found (e.g. first run), a new comment is created as usual.
+- **Scope**: the search is limited to issue-level (top-level) comments on the PR/issue. Inline review comments are not updated.
+- **Marker**: the hidden HTML marker is invisible in rendered Markdown, so it does not change the visual appearance of the comment for end users.
+
+> [!NOTE]
+> If you prefer to **delete** older comments entirely rather than overwrite them, GitHub does not expose a direct "replace" API — the overwrite approach used here preserves comment history (GitHub keeps prior versions accessible via the comment edit history). For fully removing old comments, that would require a separate "prune stale bot comments" tool/step outside the scope of this feature.
+
 ### Recurring Tasks
 
 You can use the `schedule` trigger to run the action periodically for automated maintenance tasks like dependency audits, security scans, documentation updates, or code quality checks.
@@ -840,6 +883,7 @@ For complex, multi-step tasks that generate a lot of context (e.g. large code re
 | `thinking_level` | Model thinking level | No | off |
 | `token` | Provider API token. Required for most providers, but can be omitted when using providers that support alternative auth mechanisms (e.g., `google-vertex` with Application Default Credentials) | No | - |
 | `trigger` | Trigger phrase used to invoke the action | No | /pi  |
+| `update_comment` | Whether to update/overwrite the bot's previous comment on the issue/PR instead of creating a new one. Useful for reducing noise on incremental commits (e.g. auto-review on `pull_request: [opened, synchronize]`) | No | `false` |
 
 Refer to [Pi documentation](https://pi.dev/docs/latest) for the current list of supported providers / models / etc.
 

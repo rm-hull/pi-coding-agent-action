@@ -374,6 +374,9 @@ export interface PlatformProvider {
   /**
    * Create the final comment with optional metadata footer.
    *
+   * When `updateComment` is true, implementations should update/overwrite
+   * the bot's previous comment (if any) rather than creating a new one.
+   *
    * @param body - The comment body.
    * @param metadata - Optional metadata to include in the footer.
    */

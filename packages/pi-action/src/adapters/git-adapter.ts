@@ -34,13 +34,15 @@ export class RealGitAdapter implements GitAdapter {
     private readonly core: CoreAdapter,
     octokit: GitHubModuleDeps['octokit'],
     context: GitHubModuleDeps['context'],
-    platformType?: PlatformType
+    platformType?: PlatformType,
+    updateComment?: boolean
   ) {
     this.deps = {
       octokit,
       context,
       logger: core,
       ...(platformType !== undefined ? { platformType } : {}),
+      ...(updateComment !== undefined ? { updateComment } : {}),
     };
   }
 

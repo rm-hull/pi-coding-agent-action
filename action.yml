@@ -115,6 +115,11 @@ inputs:
     required: false
     default: ''
 
+  update_comment:
+    description: 'Whether to update/overwrite the bot\'s previous comment on the issue/PR instead of creating a new one.'
+    required: false
+    default: 'false'
+
   platform:
     description: 'Git hosting platform the action is running on. One of github (default), codeberg, forgejo, or gitea (alias for forgejo). Determines platform-specific behaviour such as the action-run URL format used in the "View action run" footer. The platform is no longer auto-detected from the server URL, so set this explicitly when running on Forgejo/Codeberg/Gitea (e.g. platform: forgejo).'
     required: false

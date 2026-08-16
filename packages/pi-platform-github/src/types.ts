@@ -83,6 +83,11 @@ export interface GitHubModuleDeps {
    * default; production code should always set it via the provider.
    */
   readonly platformType?: PlatformType;
+  /**
+   * Whether to update/overwrite the bot's previous comment on the
+   * issue/PR instead of creating a new one. Optional; defaults to false.
+   */
+  readonly updateComment?: boolean;
 }
 
 /**

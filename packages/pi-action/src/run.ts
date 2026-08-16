@@ -15,7 +15,7 @@ import { ActionOrchestrator } from '@alexanderfortin/pi-orchestrator';
 import { RealCoreAdapter } from './adapters/core-adapter';
 import { RealGitAdapter } from './adapters/git-adapter';
 import { createRealPiAgent } from './adapters/pi-agent-adapter';
-import { gatherActionsConfig } from './adapters/config';
+import { gatherActionsConfig, parseBooleanInput } from './adapters/config';
 import { ActionsOutputSink } from './adapters/output-sink';
 import {
   createGitHubPlatformProvider,
@@ -168,6 +168,7 @@ export async function run() {
   // Create the platform provider with explicit deps (no singletons)
   const triggerValue = coreAdapter.getInput('trigger');
   const branchNameTemplate = coreAdapter.getInput('branch_name_template');
+  const updateCommentValue = parseBooleanInput(coreAdapter.getInput('update_comment'), false);
   const platformProvider = createGitHubPlatformProvider({
     octokit,
     context: platformContext,
@@ -175,13 +176,20 @@ export async function run() {
     platformType,
     ...(triggerValue ? { trigger: triggerValue } : {}),
     ...(branchNameTemplate ? { branchNameTemplate } : {}),
+    ...(updateCommentValue ? { updateComment: updateCommentValue } : {}),
   });
 
   // Create the git adapter with explicit deps.
   // platformType is threaded through so the footer URL builder
   // (buildActionRunUrl) can pick the correct URL format for the
   // target platform (e.g. Forgejo/Codeberg job-level URLs).
-  const gitAdapter = new RealGitAdapter(coreAdapter, octokit, platformContext, platformType);
+  const gitAdapter = new RealGitAdapter(
+    coreAdapter,
+    octokit,
+    platformContext,
+    platformType,
+    updateCommentValue
+  );
 
   const orchestrator = new ActionOrchestrator(
     config,
