@@ -116,7 +116,7 @@ inputs:
     default: ''
 
   update_comment:
-    description: 'Whether to update/overwrite the bot\'s previous comment on the issue/PR instead of creating a new one.'
+    description: 'Whether to update/overwrite the bot''s previous comment on the issue/PR instead of creating a new one.'
     required: false
     default: 'false'
 
