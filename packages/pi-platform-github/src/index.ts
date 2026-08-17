@@ -53,6 +53,8 @@ export {
   createFinalComment,
   updateBotComment,
   findPreviousBotComment,
+  updateBotReviewComment,
+  findPreviousBotReviewComment,
   type CommentRef,
   formatExecutionTime,
   formatNumber,
