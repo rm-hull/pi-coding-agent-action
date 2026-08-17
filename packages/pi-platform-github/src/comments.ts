@@ -296,6 +296,24 @@ export function formatNumber(value: number): string {
 const BOT_COMMENT_MARKER = '<!-- pi-coding-agent-comment -->';
 
 /**
+ * Maximum number of list-comments pages to fetch when searching for a prior bot
+ * comment. Each page returns up to MAX_COMMENTS_PER_PAGE entries.
+ *
+ * We cap pagination to avoid unbounded API cost on PRs with an extraordinarily
+ * long comment thread. In practice the bot's marker is unique enough that the
+ * relevant comment is almost always on the first page; this safety bound simply
+ * prevents older markers from being invisible in pathological cases while still
+ * being correct for any realistic CI thread.
+ */
+const MAX_COMMENT_PAGES = 5;
+
+/**
+ * Number of comments to request per page from the list-comments endpoints.
+ * 100 is the GitHub API maximum and minimises the number of page requests.
+ */
+const MAX_COMMENTS_PER_PAGE = 100;
+
+/**
  * Marker used for replies to PR review comments (inline review comments).
  *
  * Top-level issue/PR comments and PR review-comment replies live in separate
@@ -331,6 +349,90 @@ function isBotAuthored(body: string | undefined): boolean {
 }
 
 /**
+ * Fetch all issue/PR comments across multiple pages, newest-first.
+ *
+ * GitHub's `listComments` endpoint returns comments sorted by **ascending ID**
+ * (oldest first) by default — *not* newest first as one might assume. We
+ * therefore request `sort: 'created', direction: 'desc'` to get them
+ * newest-first, then paginate up to {@link MAX_COMMENT_PAGES} pages to avoid
+ * silently dropping older bot comments on PRs with 100+ total comments (the
+ * API returns at most MAX_COMMENTS_PER_PAGE results per page).
+ *
+ * The returned array is ordered newest-first, so callers can take the first
+ * match to find the most recent prior bot comment.
+ *
+ * @returns Array of comment objects, newest-first.
+ */
+async function listAllIssueComments(
+  deps: GitHubModuleDeps,
+  owner: string,
+  repo: string,
+  issueNumber: number
+): Promise<RestEndpointMethodTypes['issues']['listComments']['response']['data']> {
+  const allComments: NonNullable<
+    RestEndpointMethodTypes['issues']['listComments']['response']['data']
+  > = [];
+  let page = 1;
+  while (page <= MAX_COMMENT_PAGES) {
+    const comments = await deps.octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      per_page: MAX_COMMENTS_PER_PAGE,
+      sort: 'created',
+      direction: 'desc',
+      page,
+    });
+    allComments.push(...comments.data);
+    if (comments.data.length < MAX_COMMENTS_PER_PAGE) {
+      break;
+    }
+    page++;
+  }
+  return allComments;
+}
+
+/**
+ * Fetch all PR review comments (top-level inline comments + their replies)
+ * across multiple pages, newest-first.
+ *
+ * Same pagination + ordering rationale as {@link listAllIssueComments}: GitHub
+ * defaults to ascending ID order (oldest first), so we request
+ * `sort: 'created', direction: 'desc'` and walk up to
+ * {@link MAX_COMMENT_PAGES} pages.
+ *
+ * @returns Array of review-comment objects, newest-first.
+ */
+async function listAllReviewComments(
+  deps: GitHubModuleDeps,
+  owner: string,
+  repo: string,
+  issueNumber: number
+): Promise<RestEndpointMethodTypes['pulls']['listReviewComments']['response']['data']> {
+  const allComments: NonNullable<
+    RestEndpointMethodTypes['pulls']['listReviewComments']['response']['data']
+  > = [];
+  let page = 1;
+  while (page <= MAX_COMMENT_PAGES) {
+    const reviewComments = await deps.octokit.rest.pulls.listReviewComments({
+      owner,
+      repo,
+      pull_number: issueNumber,
+      per_page: MAX_COMMENTS_PER_PAGE,
+      sort: 'created',
+      direction: 'desc',
+      page,
+    });
+    allComments.push(...reviewComments.data);
+    if (reviewComments.data.length < MAX_COMMENTS_PER_PAGE) {
+      break;
+    }
+    page++;
+  }
+  return allComments;
+}
+
+/**
  * Find the most recent comment authored by this action on the current issue/PR.
  *
  * We identify our own comments by embedding one of the bot markers
@@ -338,6 +440,11 @@ function isBotAuthored(body: string | undefined): boolean {
  * {@link BOT_REVIEW_COMMENT_MARKER} for PR review-comment replies) at the
  * start of the body — this is resilient to footer changes and avoids matching
  * unrelated bot comments in this (issue-comment) namespace.
+ *
+ * GitHub's `listComments` endpoint returns comments sorted by **ascending ID**
+ * (oldest first) by default, so we request `direction: 'desc'` (which
+ * requires `sort` to be set, per GitHub's docs) to get them newest-first.
+ * We then take the first match — i.e. the most recent prior bot comment.
  *
  * @returns The most recent matching comment (or `undefined` if none found).
  */
@@ -350,15 +457,10 @@ export async function findPreviousBotComment(
   }
 
   const { owner, repo } = deps.context.repo;
-  const comments = await deps.octokit.rest.issues.listComments({
-    owner,
-    repo,
-    issue_number: issueNumber,
-    per_page: 100,
-  });
+  const allComments = await listAllIssueComments(deps, owner, repo, issueNumber);
 
-  // Most recent first (GitHub returns newest-first by default).
-  const found = comments.data.find(c => isBotAuthored(c.body));
+  // Newest-first: the first match is the most recent prior bot comment.
+  const found = allComments.find(c => isBotAuthored(c.body));
   if (!found) {
     return undefined;
   }
@@ -402,6 +504,10 @@ export async function updateBotComment(
  * {@link BOT_REVIEW_COMMENT_MARKER}, or — for backward compatibility —
  * {@link BOT_COMMENT_MARKER} on replies authored before the review marker existed.
  *
+ * GitHub's `listReviewComments` endpoint, like `listComments`, defaults to
+ * ascending ID order (oldest first). We request `direction: 'desc'` via
+ * {@link listAllReviewComments} so the first match is the most recent prior reply.
+ *
  * @returns The most recent matching reply (or `undefined` if none found).
  */
 export async function findPreviousBotReviewComment(
@@ -420,19 +526,10 @@ export async function findPreviousBotReviewComment(
   }
 
   const { owner, repo } = deps.context.repo;
-  const reviewComments = await deps.octokit.rest.pulls.listReviewComments({
-    owner,
-    repo,
-    pull_number: issueNumber,
-    per_page: 100,
-  });
+  const allReviewComments = await listAllReviewComments(deps, owner, repo, issueNumber);
 
-  // `listReviewComments` returns both top-level inline comments and their
-  // replies; replies carry an `in_reply_to_id`. Pick the newest reply
-  // belonging to this thread that the bot previously authored. We accept
-  // either marker so replies tagged before the review marker existed are
-  // migrated in place rather than left as duplicates.
-  const found = reviewComments.data.find(
+  // Newest-first: the first match is the most recent prior reply in this thread.
+  const found = allReviewComments.find(
     c => c.in_reply_to_id === commentId && isBotAuthored(c.body)
   );
   if (!found) {

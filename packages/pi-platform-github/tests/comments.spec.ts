@@ -964,4 +964,149 @@ describe('createFinalComment with updateComment', () => {
     expect(mockListReviewComments).not.toHaveBeenCalled();
     expect(mockUpdateComment).toHaveBeenCalled();
   });
+
+  test('updates the most recent bot comment when multiple exist (ordering fix)', async () => {
+    // Regression test for the ordering bug: GitHub returns comments in ascending
+    // ID order (oldest first) by default. The bot markers two comments — an
+    // older one (id 42) and a newer one (id 88). The code must update id 88,
+    // not id 42. With `direction: 'desc'` the API returns them newest-first,
+    // so `.find()` correctly picks the most recent.
+    const mockUpdateComment = vi.fn(() =>
+      Promise.resolve({
+        data: { id: 88, body: 'updated', html_url: '' },
+        headers: {},
+        status: 200,
+        url: '',
+      })
+    );
+    const mockListComments = vi.fn(() =>
+      Promise.resolve({
+        data: [
+          {
+            id: 88,
+            body: '<!-- pi-coding-agent-comment -->\nnewer bot response',
+          },
+          {
+            id: 42,
+            body: '<!-- pi-coding-agent-comment -->\nolder bot response',
+          },
+        ],
+        headers: {},
+        status: 200,
+        url: '',
+      })
+    );
+
+    const deps = {
+      ...createTestDeps(),
+      updateComment: true,
+      octokit: {
+        rest: {
+          issues: {
+            createComment: vi.fn(),
+            listComments: mockListComments,
+            updateComment: mockUpdateComment,
+          },
+          pulls: {
+            createReplyForReviewComment: vi.fn(),
+          },
+        },
+      } as any,
+    };
+
+    await createFinalComment(deps, 'Latest response', {});
+
+    expect(mockUpdateComment).toHaveBeenCalled();
+    const updateCall = mockUpdateComment.mock.calls[0][0] as {
+      comment_id: number;
+      body: string;
+    };
+    // Must update the *most recent* bot comment (id 88), not the oldest (id 42).
+    expect(updateCall.comment_id).toBe(88);
+  });
+
+  test('passes sort=created and direction=desc to listComments', async () => {
+    // Verifies the ordering fix is actually applied: the API call must include
+    // `sort: 'created'` and `direction: 'desc'` so GitHub returns newest-first.
+    const mockListComments = vi.fn(() =>
+      Promise.resolve({
+        data: [],
+        headers: {},
+        status: 200,
+        url: '',
+      })
+    );
+
+    const deps = {
+      ...createTestDeps(),
+      updateComment: true,
+      octokit: {
+        rest: {
+          issues: {
+            createComment: vi.fn(),
+            listComments: mockListComments,
+            updateComment: vi.fn(),
+          },
+          pulls: {
+            createReplyForReviewComment: vi.fn(),
+          },
+        },
+      } as any,
+    };
+
+    await createFinalComment(deps, 'New response', {});
+
+    expect(mockListComments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort: 'created',
+        direction: 'desc',
+        per_page: 100,
+        page: 1,
+      })
+    );
+  });
+
+  test('passes sort=created and direction=desc to listReviewComments', async () => {
+    const mockListReviewComments = vi.fn(() =>
+      Promise.resolve({
+        data: [],
+        headers: {},
+        status: 200,
+        url: '',
+      })
+    );
+
+    const deps = {
+      ...createTestDeps({
+        comment: {
+          id: 789,
+          body: 'inline comment on code',
+          pull_request_review_id: 456,
+        },
+      }),
+      updateComment: true,
+      octokit: {
+        rest: {
+          issues: { createComment: vi.fn(), listComments: vi.fn(), updateComment: vi.fn() },
+          pulls: {
+            createReplyForReviewComment: vi.fn(),
+            listReviewComments: mockListReviewComments,
+            updateReviewComment: vi.fn(),
+          },
+        },
+      } as any,
+    };
+
+    await createFinalComment(deps, 'Updated review reply', {});
+
+    expect(mockListReviewComments).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort: 'created',
+        direction: 'desc',
+        pull_number: 123,
+        owner: 'test-owner',
+        repo: 'test-repo',
+      })
+    );
+  });
 });
