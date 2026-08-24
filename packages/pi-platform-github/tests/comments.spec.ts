@@ -1017,12 +1017,14 @@ describe('createFinalComment with updateComment', () => {
     await createFinalComment(deps, 'Latest response', {});
 
     expect(mockUpdateComment).toHaveBeenCalled();
-    const updateCall = mockUpdateComment.mock.calls[0][0] as {
+    const updateCall = mockUpdateComment.mock.calls[0] as unknown[] | undefined;
+    expect(updateCall).toBeDefined();
+    const updateArgs = updateCall![0] as {
       comment_id: number;
       body: string;
     };
     // Must update the *most recent* bot comment (id 88), not the oldest (id 42).
-    expect(updateCall.comment_id).toBe(88);
+    expect(updateArgs.comment_id).toBe(88);
   });
 
   test('passes sort=created and direction=desc to listComments', async () => {
