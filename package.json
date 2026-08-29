@@ -1,6 +1,6 @@
 {
   "name": "pi-coding-agent-action",
-  "version": "2.27.0",
+  "version": "2.27.1",
   "private": true,
   "description": "CI/CD Action to integrate Pi coding agent in workflows",
   "scripts": {
@@ -42,11 +42,12 @@
   "dependencies": {
     "@alexanderfortin/pi-orchestrator": "workspace:*",
     "@alexanderfortin/pi-platform-github": "workspace:*",
-    "@earendil-works/pi-agent-core": "^0.84.0",
-    "@earendil-works/pi-ai": "^0.84.0",
-    "@earendil-works/pi-coding-agent": "^0.84.0"
+    "@earendil-works/pi-agent-core": "^0.84.3",
+    "@earendil-works/pi-ai": "^0.84.3",
+    "@earendil-works/pi-coding-agent": "^0.84.3"
   },
   "devDependencies": {
+    "@actions/github": "^9.1.1",
     "@alexanderfortin/semantic-release-keep-a-changelog": "^0.4.9",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.1.0",
@@ -54,7 +55,6 @@
     "@semantic-release/github": "^12.0.9",
     "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.1.1",
-    "@actions/github": "^9.1.1",
     "@types/node": "^26.1.1",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
     "@typescript-eslint/parser": "^8.65.0",

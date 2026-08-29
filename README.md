@@ -57,7 +57,7 @@ Create a workflow file, e.g., `.github/workflows/pi-agent.yml`. See the [interac
 The `develop` branch is in constant development while the `v2` branch is considered stable, if you don't want the bleeding edge you can pin to a specific release, e.g.
 
 ```yaml
-   uses: shaftoe/pi-coding-agent-action@v2.27.0
+   uses: shaftoe/pi-coding-agent-action@v2.27.1
 ```
 
 > [!NOTE]
@@ -75,9 +75,9 @@ If you need to pin to a specific Pi SDK version check out previous release tags 
 |---|---|---|
 | `@actions/core` | `3.0.1` | GitHub Actions core I/O (inputs, outputs, logging) |
 | `@actions/github` | `9.1.1` | GitHub API client (Octokit wrapper) |
-| `@earendil-works/pi-agent-core` | `0.84.0` | Pi Agent Core — agent orchestration primitives |
-| `@earendil-works/pi-ai` | `0.84.0` | Pi AI — AI model abstractions and providers |
-| `@earendil-works/pi-coding-agent` | `0.84.0` | Pi SDK — AI coding agent runtime |
+| `@earendil-works/pi-agent-core` | `0.84.3` | Pi Agent Core — agent orchestration primitives |
+| `@earendil-works/pi-ai` | `0.84.3` | Pi AI — AI model abstractions and providers |
+| `@earendil-works/pi-coding-agent` | `0.84.3` | Pi SDK — AI coding agent runtime |
 | `@js-temporal/polyfill` | `0.5.1` | Temporal API polyfill |
 | `@octokit/core` | `7.0.6` | Octokit REST API client core |
 | `@octokit/plugin-rest-endpoint-methods` | `17.0.0` | Octokit REST API endpoint methods |

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.27.1] - 2026-08-26
+
+### Changed
+
+- **deps-ci**: bump github/codeql-action from 4.37.3 to 4.37.6 (#402)
+- **deps-ci**: bump github/codeql-action from 4.37.6 to 4.37.7 (#406)
+
+### Fixed
+
+- bump Pi SDK to v0.84.3
+- **deps**: bump Pi to v0.84.0 (#400)
+- **pi-action**: bundle AWS Bedrock provider into dist to fix missing module error (#398) (#399)
+- load npm extensions from bundled Pi runtime (#405)
+- **github**: recover missing PR context from event payload (#401)
+
 ## [2.27.0] - 2026-08-03
 
 ### Added
@@ -636,7 +651,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README link corrections
 - Codecov action updated, removed double build
 
-[unreleased]: https://github.com/shaftoe/pi-coding-agent-action/compare/v2.27.0...HEAD
+[unreleased]: https://github.com/shaftoe/pi-coding-agent-action/compare/v2.27.1...HEAD
+[2.27.1]: https://github.com/shaftoe/pi-coding-agent-action/compare/v2.27.0...v2.27.1
 [2.27.0]: https://github.com/shaftoe/pi-coding-agent-action/compare/v2.26.0...v2.27.0
 [2.26.0]: https://github.com/shaftoe/pi-coding-agent-action/compare/v2.25.1...v2.26.0
 [2.25.1]: https://github.com/shaftoe/pi-coding-agent-action/compare/v2.25.0...v2.25.1

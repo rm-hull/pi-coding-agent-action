@@ -1,6 +1,6 @@
 {
   "name": "@alexanderfortin/pi-action",
-  "version": "2.27.0",
+  "version": "2.27.1",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
@@ -14,9 +14,9 @@
     "@actions/github": "^9.1.1",
     "@alexanderfortin/pi-orchestrator": "workspace:*",
     "@alexanderfortin/pi-platform-github": "workspace:*",
-    "@earendil-works/pi-agent-core": "^0.84.0",
-    "@earendil-works/pi-ai": "^0.84.0",
-    "@earendil-works/pi-coding-agent": "^0.84.0",
+    "@earendil-works/pi-agent-core": "^0.84.3",
+    "@earendil-works/pi-ai": "^0.84.3",
+    "@earendil-works/pi-coding-agent": "^0.84.3",
     "@js-temporal/polyfill": "^0.5.1"
   },
   "devDependencies": {
