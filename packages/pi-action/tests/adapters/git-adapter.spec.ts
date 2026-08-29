@@ -5,7 +5,7 @@
  * and implements the GitAdapter interface.
  */
 
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { RealGitAdapter } from '../../src/adapters/git-adapter';
 import type { CoreAdapter } from '@alexanderfortin/pi-orchestrator';
 
@@ -147,5 +147,23 @@ describe('RealGitAdapter', () => {
       'https://github.com/test-owner/test-repo/actions/runs/123456789'
     );
     expect(created[0]!.body).not.toContain('/jobs/0/attempt/');
+  });
+});
+
+// Additional tests for update_comment functionality
+describe('RealGitAdapter updateComment parameter', () => {
+  test('forwards updateComment to dependencies when true', () => {
+    const adapter = new RealGitAdapter(createMockCoreAdapter(), mockOctokit as any, mockContext, 'github', true);
+    expect((adapter as any).deps.updateComment).toBe(true);
+  });
+
+  test('forwards updateComment to dependencies when false', () => {
+    const adapter = new RealGitAdapter(createMockCoreAdapter(), mockOctokit as any, mockContext, 'github', false);
+    expect((adapter as any).deps.updateComment).toBe(false);
+  });
+
+  test('does not set updateComment when not provided', () => {
+    const adapter = new RealGitAdapter(createMockCoreAdapter(), mockOctokit as any, mockContext, 'github');
+    expect((adapter as any).deps.updateComment).toBeUndefined();
   });
 });
