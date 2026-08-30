@@ -349,19 +349,19 @@ function isBotAuthored(body: string | undefined): boolean {
 }
 
 /**
- * Fetch all issue/PR comments across multiple pages, newest-first.
+ * Fetch all issue/PR comments across multiple pages.
  *
  * GitHub's `listComments` endpoint returns comments sorted by **ascending ID**
- * (oldest first) by default — *not* newest first as one might assume. We
- * therefore request `sort: 'created', direction: 'desc'` to get them
- * newest-first, then paginate up to {@link MAX_COMMENT_PAGES} pages to avoid
- * silently dropping older bot comments on PRs with 100+ total comments (the
- * API returns at most MAX_COMMENTS_PER_PAGE results per page).
+ * (oldest first) by default and does not support `sort`/`direction` params —
+ * those are silently dropped. We paginate up to {@link MAX_COMMENT_PAGES}
+ * pages to avoid silently dropping older bot comments on PRs with 100+ total
+ * comments (the API returns at most MAX_COMMENTS_PER_PAGE results per page).
  *
- * The returned array is ordered newest-first, so callers can take the first
- * match to find the most recent prior bot comment.
+ * The returned array is ordered oldest-first (the endpoint's native order);
+ * callers must select the highest-id match to find the most recent prior bot
+ * comment.
  *
- * @returns Array of comment objects, newest-first.
+ * @returns Array of comment objects, oldest-first.
  */
 async function listAllIssueComments(
   deps: GitHubModuleDeps,
@@ -374,13 +374,15 @@ async function listAllIssueComments(
   > = [];
   let page = 1;
   while (page <= MAX_COMMENT_PAGES) {
+    // GitHub's issues.listComments endpoint does NOT support `sort`/`direction`
+    // — those params are silently ignored. The endpoint always returns comments
+    // in ascending-ID order (oldest first). We therefore must not send them, and
+    // instead select the highest-id match as the most recent bot comment.
     const comments = await deps.octokit.rest.issues.listComments({
       owner,
       repo,
       issue_number: issueNumber,
       per_page: MAX_COMMENTS_PER_PAGE,
-      sort: 'created',
-      direction: 'desc',
       page,
     });
     allComments.push(...comments.data);
@@ -442,9 +444,9 @@ async function listAllReviewComments(
  * unrelated bot comments in this (issue-comment) namespace.
  *
  * GitHub's `listComments` endpoint returns comments sorted by **ascending ID**
- * (oldest first) by default, so we request `direction: 'desc'` (which
- * requires `sort` to be set, per GitHub's docs) to get them newest-first.
- * We then take the first match — i.e. the most recent prior bot comment.
+ * (oldest first) by default and does not support `sort`/`direction` params.
+ * We therefore cannot request descending order; instead we collect every
+ * bot-authored match and pick the highest-id one, which is the most recent.
  *
  * @returns The most recent matching comment (or `undefined` if none found).
  */
@@ -459,11 +461,14 @@ export async function findPreviousBotComment(
   const { owner, repo } = deps.context.repo;
   const allComments = await listAllIssueComments(deps, owner, repo, issueNumber);
 
-  // Newest-first: the first match is the most recent prior bot comment.
-  const found = allComments.find(c => isBotAuthored(c.body));
-  if (!found) {
+  // Collect all bot-authored matches (oldest-first in this endpoint) and pick
+  // the highest id = most recent prior bot comment.
+  const matches = allComments.filter(c => isBotAuthored(c.body));
+  if (matches.length === 0) {
     return undefined;
   }
+  // matches is guaranteed non-empty here.
+  const found = matches.reduce((max, c) => (c.id > max.id ? c : max), matches[0]!);
   return { id: found.id, body: found.body ?? '' };
 }
 

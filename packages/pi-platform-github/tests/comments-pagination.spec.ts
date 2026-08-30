@@ -47,6 +47,12 @@ describe('comments pagination and loop breaks', () => {
     expect(res).toBeDefined();
     expect(res?.id).toBe(50);
     expect(listComments).toHaveBeenCalledTimes(1);
+
+    // GitHub's issues.listComments does NOT support sort/direction — verify
+    // we don't send them (they would be silently ignored).
+    const lastCall = listComments.mock.calls[0]![0];
+    expect(lastCall).not.toHaveProperty('sort');
+    expect(lastCall).not.toHaveProperty('direction');
   });
 
   test('listAllReviewComments breaks pagination when page returns fewer than 100 comments', async () => {
@@ -88,6 +94,38 @@ describe('comments pagination and loop breaks', () => {
     expect(res).toBeDefined();
     expect(res?.id).toBe(202);
     expect(listReviewComments).toHaveBeenCalledTimes(1);
+  });
+
+  test('findPreviousBotComment selects the most recent (highest-id) bot comment from multiple matches', async () => {
+    // GitHub returns issue comments in ascending-id order (oldest first).
+    // Verify we pick the highest-id bot-authored comment.
+    const listComments = vi.fn().mockResolvedValue({
+      data: [
+        { id: 10, body: 'regular comment' },
+        { id: 20, body: '<!-- pi-coding-agent-comment -->\nold match 1' },
+        { id: 30, body: 'regular comment' },
+        { id: 40, body: '<!-- pi-coding-agent-comment -->\nnewer match 2' },
+        { id: 50, body: '<!-- pi-coding-agent-comment -->\nnewest match 3' },
+      ],
+    });
+
+    const deps = {
+      octokit: { rest: { issues: { listComments } } } as any,
+      context: {
+        repo: { owner: 'owner', repo: 'repo' },
+        issue: { number: 1 },
+        eventName: 'issue_comment',
+        payload: {},
+        serverUrl: 'https://github.com',
+        workspace: '/github/workspace',
+      },
+      logger: { debug: noop, info: noop, warning: noop, notice: noop, error: noop },
+    };
+
+    const res = await findPreviousBotComment(deps);
+    expect(res).toBeDefined();
+    expect(res?.id).toBe(50);
+    expect(res?.body).toContain('newest match 3');
   });
 
   test('findPreviousBotComment returns undefined when no issue number in context', async () => {

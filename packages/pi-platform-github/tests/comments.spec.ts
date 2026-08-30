@@ -1027,9 +1027,11 @@ describe('createFinalComment with updateComment', () => {
     expect(updateArgs.comment_id).toBe(88);
   });
 
-  test('passes sort=created and direction=desc to listComments', async () => {
-    // Verifies the ordering fix is actually applied: the API call must include
-    // `sort: 'created'` and `direction: 'desc'` so GitHub returns newest-first.
+  test('does NOT pass sort/direction to listComments (unsupported, silently ignored)', async () => {
+    // Verifies we do NOT send `sort`/`direction` to issues.listComments —
+    // GitHub silently ignores those params and the endpoint always returns
+    // comments in ascending-ID order (oldest first). We instead select the
+    // highest-id match as the most recent bot comment.
     const mockListComments = vi.fn(() =>
       Promise.resolve({
         data: [],
@@ -1060,12 +1062,16 @@ describe('createFinalComment with updateComment', () => {
 
     expect(mockListComments).toHaveBeenCalledWith(
       expect.objectContaining({
-        sort: 'created',
-        direction: 'desc',
         per_page: 100,
         page: 1,
       })
     );
+    // sort and direction should NOT be present — GitHub ignores them.
+    const calls = mockListComments.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const callArgs = (calls[0] as unknown as [Record<string, unknown>])[0];
+    expect(callArgs).not.toHaveProperty('sort');
+    expect(callArgs).not.toHaveProperty('direction');
   });
 
   test('passes sort=created and direction=desc to listReviewComments', async () => {
