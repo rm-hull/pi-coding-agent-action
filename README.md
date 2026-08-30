@@ -295,7 +295,7 @@ Behavior notes:
 
 - **Opt-in**: defaults to `false`, so existing workflows are unaffected.
 - **Fallback**: if `update_comment` is `true` but no previous bot comment is found (e.g. first run), a new comment is created as usual.
-- **Scope**: the search is limited to issue-level (top-level) comments on the PR/issue. Inline review comments are not updated.
+- **Scope**: both top-level issue/PR comments and inline PR review-comment replies are updated. The two namespaces are fetched via different endpoints (`issues.listComments` vs. `pulls.listReviewComments`), so the lookup is namespace-aware.
 - **Marker**: the hidden HTML marker is invisible in rendered Markdown, so it does not change the visual appearance of the comment for end users.
 
 > [!NOTE]
