@@ -632,16 +632,32 @@ export async function createFinalComment(
       if (prev) {
         deps.logger.debug(`[comments] updating previous bot review comment ${prev.id}`);
         const updatedBody = `${marker}\n${finalBody}`;
-        await updateBotReviewComment(deps, prev.id, updatedBody);
-        return;
+        try {
+          await updateBotReviewComment(deps, prev.id, updatedBody);
+          return;
+        } catch (err) {
+          // If the update fails (e.g. transient 5xx, permissions issue),
+          // fall through to createComment so the comment is not lost entirely.
+          deps.logger.warning(
+            `[comments] failed to update bot review comment ${prev.id}, falling back to create: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
       }
     } else {
       const prev = await findPreviousBotComment(deps);
       if (prev) {
         deps.logger.debug(`[comments] updating previous bot comment ${prev.id}`);
         const updatedBody = `${marker}\n${finalBody}`;
-        await updateBotComment(deps, prev.id, updatedBody);
-        return;
+        try {
+          await updateBotComment(deps, prev.id, updatedBody);
+          return;
+        } catch (err) {
+          // If the update fails (e.g. transient 5xx, permissions issue),
+          // fall through to createComment so the comment is not lost entirely.
+          deps.logger.warning(
+            `[comments] failed to update bot comment ${prev.id}, falling back to create: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
       }
     }
   }

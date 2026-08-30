@@ -1027,6 +1027,46 @@ describe('createFinalComment with updateComment', () => {
     expect(updateArgs.comment_id).toBe(88);
   });
 
+  test('falls back to createComment when updateComment fails', async () => {
+    // When issues.updateComment throws (e.g. transient 5xx), createFinalComment
+    // should fall through to createComment so the comment is not lost entirely.
+    const mockListComments = vi.fn(() =>
+      Promise.resolve({
+        data: [{ id: 88, body: '<!-- pi-coding-agent-comment -->\nold bot response' }],
+        headers: {},
+        status: 200,
+        url: '',
+      })
+    );
+    const mockUpdateComment = vi.fn(() => Promise.reject(new Error('500 Server Error')));
+    const mockCreateComment = vi.fn(() =>
+      Promise.resolve({ data: { id: 999 }, headers: {}, status: 201, url: '' })
+    );
+
+    const deps = {
+      ...createTestDeps(),
+      updateComment: true,
+      logger: { ...createTestDeps().logger, warning: vi.fn() },
+      octokit: {
+        rest: {
+          issues: {
+            createComment: mockCreateComment,
+            listComments: mockListComments,
+            updateComment: mockUpdateComment,
+          },
+          pulls: { createReplyForReviewComment: vi.fn() },
+        },
+      } as any,
+    };
+
+    await createFinalComment(deps, 'New response', {});
+
+    // Update should have been attempted ...
+    expect(mockUpdateComment).toHaveBeenCalled();
+    // ... and create should have been called as fallback.
+    expect(mockCreateComment).toHaveBeenCalled();
+  });
+
   test('does NOT pass sort/direction to listComments (unsupported, silently ignored)', async () => {
     // Verifies we do NOT send `sort`/`direction` to issues.listComments —
     // GitHub silently ignores those params and the endpoint always returns
