@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { parseBooleanInput } from '../src/adapters/config';
 
 // Test the parseBooleanInput logic that's used in run.ts for update_comment
