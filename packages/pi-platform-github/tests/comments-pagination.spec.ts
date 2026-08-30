@@ -35,6 +35,10 @@ describe('comments pagination and loop breaks', () => {
       context: {
         repo: { owner: 'owner', repo: 'repo' },
         issue: { number: 1 },
+        eventName: 'issue_comment',
+        payload: {},
+        serverUrl: 'https://github.com',
+        workspace: '/github/workspace',
       },
       logger: { debug: noop, info: noop, warning: noop, notice: noop, error: noop },
     };
@@ -52,7 +56,8 @@ describe('comments pagination and loop breaks', () => {
         return Promise.resolve({
           data: Array.from({ length: 5 }, (_, i) => ({
             id: i + 200,
-            body: i === 2 ? '<!-- pi-coding-agent-review-comment -->\nreview match' : 'review comment',
+            body:
+              i === 2 ? '<!-- pi-coding-agent-review-comment -->\nreview match' : 'review comment',
             in_reply_to_id: 789,
           })),
         });
@@ -72,6 +77,9 @@ describe('comments pagination and loop breaks', () => {
         payload: {
           comment: { id: 789 },
         },
+        eventName: 'issue_comment',
+        serverUrl: 'https://github.com',
+        workspace: '/github/workspace',
       },
       logger: { debug: noop, info: noop, warning: noop, notice: noop, error: noop },
     };
@@ -83,25 +91,52 @@ describe('comments pagination and loop breaks', () => {
   });
 
   test('findPreviousBotComment returns undefined when no issue number in context', async () => {
-    const deps = {
+    const depsNoIssue = {
       octokit: {} as any,
-      context: { issue: {} },
+      context: {
+        issue: { number: 0 },
+        repo: { owner: 'owner', repo: 'repo' },
+        eventName: 'issue_comment',
+        payload: {},
+        serverUrl: 'https://github.com',
+        workspace: '/github/workspace',
+      },
       logger: { debug: noop, info: noop, warning: noop, notice: noop, error: noop },
     };
-    expect(await findPreviousBotComment(deps)).toBeUndefined();
+    expect(await findPreviousBotComment(depsNoIssue)).toBeUndefined();
   });
 
   test('findPreviousBotReviewComment returns undefined when no issue number or comment id in context', async () => {
-    const depsNoIssue = {
+    const _depsNoIssue = {
+      octokit: {} as any,
+      context: {
+        issue: { number: 1 },
+        repo: { owner: 'owner', repo: 'repo' },
+        eventName: 'issue_comment',
+        payload: {},
+        serverUrl: 'https://github.com',
+        workspace: '/github/workspace',
+      },
+      logger: { debug: noop, info: noop, warning: noop, notice: noop, error: noop },
+    };
+    // Fix: provide empty issue to test the undefined return
+    const depsEmptyIssue = {
       octokit: {} as any,
       context: { issue: {} },
       logger: { debug: noop, info: noop, warning: noop, notice: noop, error: noop },
     };
-    expect(await findPreviousBotReviewComment(depsNoIssue)).toBeUndefined();
+    expect(await findPreviousBotReviewComment(depsEmptyIssue as any)).toBeUndefined();
 
     const depsNoCommentId = {
       octokit: {} as any,
-      context: { issue: { number: 1 }, payload: {} },
+      context: {
+        issue: { number: 1 },
+        payload: {},
+        repo: { owner: 'owner', repo: 'repo' },
+        eventName: 'issue_comment',
+        serverUrl: 'https://github.com',
+        workspace: '/github/workspace',
+      },
       logger: { debug: noop, info: noop, warning: noop, notice: noop, error: noop },
     };
     expect(await findPreviousBotReviewComment(depsNoCommentId)).toBeUndefined();

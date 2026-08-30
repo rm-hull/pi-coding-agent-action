@@ -1,5 +1,9 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest';
-import { createGitHubPlatformProvider, parsePlatformType, apiBaseUrlFromServerUrl } from '../src/provider';
+import {
+  createGitHubPlatformProvider,
+  parsePlatformType,
+  apiBaseUrlFromServerUrl,
+} from '../src/provider';
 import { addReaction } from '../src/reactions';
 import { createFinalComment } from '../src/comments';
 import { getPrompt, getStartTimeFromContext } from '../src/context';
@@ -58,7 +62,7 @@ describe('createGitHubPlatformProvider detailed coverage', () => {
       checks: { listForRef: vi.fn() },
       actions: { listJobsForWorkflowRun: vi.fn() },
     },
-  };
+  } as any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -283,23 +287,39 @@ describe('apiBaseUrlFromServerUrl', () => {
     expect(apiBaseUrlFromServerUrl('https://codeberg.org')).toBe('https://codeberg.org/api/v1');
     // Note: forgejo/codeberg/gitea hostnames only trigger /api/v1 when explicitly
     // identified via platformType or when the hostname contains those strings
-    expect(apiBaseUrlFromServerUrl('https://forge.example.com')).toBe('https://forge.example.com/api/v3');
-    expect(apiBaseUrlFromServerUrl('https://gitea.example.com')).toBe('https://gitea.example.com/api/v1');
+    expect(apiBaseUrlFromServerUrl('https://forge.example.com')).toBe(
+      'https://forge.example.com/api/v3'
+    );
+    expect(apiBaseUrlFromServerUrl('https://gitea.example.com')).toBe(
+      'https://gitea.example.com/api/v1'
+    );
   });
 
   test('returns /api/v3 for self-hosted GHE', () => {
-    expect(apiBaseUrlFromServerUrl('https://ghe.company.internal')).toBe('https://ghe.company.internal/api/v3');
-    expect(apiBaseUrlFromServerUrl('https://github.company.com')).toBe('https://github.company.com/api/v3');
+    expect(apiBaseUrlFromServerUrl('https://ghe.company.internal')).toBe(
+      'https://ghe.company.internal/api/v3'
+    );
+    expect(apiBaseUrlFromServerUrl('https://github.company.com')).toBe(
+      'https://github.company.com/api/v3'
+    );
   });
 
   test('returns /api/v1 when platformType is forgejo regardless of hostname', () => {
-    expect(apiBaseUrlFromServerUrl('https://github.com', 'forgejo')).toBe('https://github.com/api/v1');
-    expect(apiBaseUrlFromServerUrl('https://ghe.company.internal', 'forgejo')).toBe('https://ghe.company.internal/api/v1');
+    expect(apiBaseUrlFromServerUrl('https://github.com', 'forgejo')).toBe(
+      'https://github.com/api/v1'
+    );
+    expect(apiBaseUrlFromServerUrl('https://ghe.company.internal', 'forgejo')).toBe(
+      'https://ghe.company.internal/api/v1'
+    );
   });
 
   test('returns /api/v1 when platformType is codeberg regardless of hostname', () => {
-    expect(apiBaseUrlFromServerUrl('https://github.com', 'codeberg')).toBe('https://github.com/api/v1');
-    expect(apiBaseUrlFromServerUrl('https://ghe.company.internal', 'codeberg')).toBe('https://ghe.company.internal/api/v1');
+    expect(apiBaseUrlFromServerUrl('https://github.com', 'codeberg')).toBe(
+      'https://github.com/api/v1'
+    );
+    expect(apiBaseUrlFromServerUrl('https://ghe.company.internal', 'codeberg')).toBe(
+      'https://ghe.company.internal/api/v1'
+    );
   });
 
   test('throws on empty string', () => {
@@ -308,6 +328,8 @@ describe('apiBaseUrlFromServerUrl', () => {
 
   test('trims trailing slash from serverUrl', () => {
     expect(apiBaseUrlFromServerUrl('https://codeberg.org/')).toBe('https://codeberg.org/api/v1');
-    expect(apiBaseUrlFromServerUrl('https://ghe.company.internal/')).toBe('https://ghe.company.internal/api/v3');
+    expect(apiBaseUrlFromServerUrl('https://ghe.company.internal/')).toBe(
+      'https://ghe.company.internal/api/v3'
+    );
   });
 });

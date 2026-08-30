@@ -153,17 +153,34 @@ describe('RealGitAdapter', () => {
 // Additional tests for update_comment functionality
 describe('RealGitAdapter updateComment parameter', () => {
   test('forwards updateComment to dependencies when true', () => {
-    const adapter = new RealGitAdapter(createMockCoreAdapter(), mockOctokit as any, mockContext, 'github', true);
+    const adapter = new RealGitAdapter(
+      createMockCoreAdapter(),
+      mockOctokit as any,
+      mockContext,
+      'github',
+      true
+    );
     expect((adapter as any).deps.updateComment).toBe(true);
   });
 
   test('forwards updateComment to dependencies when false', () => {
-    const adapter = new RealGitAdapter(createMockCoreAdapter(), mockOctokit as any, mockContext, 'github', false);
+    const adapter = new RealGitAdapter(
+      createMockCoreAdapter(),
+      mockOctokit as any,
+      mockContext,
+      'github',
+      false
+    );
     expect((adapter as any).deps.updateComment).toBe(false);
   });
 
   test('does not set updateComment when not provided', () => {
-    const adapter = new RealGitAdapter(createMockCoreAdapter(), mockOctokit as any, mockContext, 'github');
+    const adapter = new RealGitAdapter(
+      createMockCoreAdapter(),
+      mockOctokit as any,
+      mockContext,
+      'github'
+    );
     expect((adapter as any).deps.updateComment).toBeUndefined();
   });
 });

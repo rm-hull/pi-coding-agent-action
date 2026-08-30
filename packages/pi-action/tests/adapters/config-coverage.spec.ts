@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { parseBooleanInput, parsePositiveIntInput, parseStringListInput, parseLoadedTools, validateRequiredInputs } from '../../src/adapters/config';
+import {
+  parseBooleanInput,
+  parsePositiveIntInput,
+  parseStringListInput,
+  parseLoadedTools,
+  validateRequiredInputs,
+} from '../../src/adapters/config';
 
 describe('config adapter extra coverage', () => {
   test('parseBooleanInput', () => {

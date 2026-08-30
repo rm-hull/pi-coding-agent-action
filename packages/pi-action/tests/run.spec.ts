@@ -6,17 +6,17 @@ describe('run.ts update_comment logic', () => {
   test('parseBooleanInput correctly parses update_comment input', () => {
     // True case
     expect(parseBooleanInput('true', false)).toBe(true);
-    
+
     // False case (default)
     expect(parseBooleanInput('false', true)).toBe(false);
-    
+
     // Empty input defaults to false
     expect(parseBooleanInput('', false)).toBe(false);
-    
+
     // Case insensitive
     expect(parseBooleanInput('TRUE', false)).toBe(true);
     expect(parseBooleanInput('False', true)).toBe(false);
-    
+
     // Any non-"true" string defaults to false
     expect(parseBooleanInput('yes', false)).toBe(false);
     expect(parseBooleanInput('1', false)).toBe(false);
