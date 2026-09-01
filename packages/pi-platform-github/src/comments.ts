@@ -331,6 +331,15 @@ export interface CommentRef {
   body: string;
 }
 
+interface CommentWithUser {
+  id: number;
+  body?: string | null;
+  user?: {
+    type?: string | null;
+    login?: string | null;
+  } | null;
+}
+
 /**
  * Recognise a comment as authored by this action, regardless of which
  * namespace (issue comment vs. PR review-comment reply) it lives in.
@@ -340,9 +349,15 @@ export interface CommentRef {
  * marker existed (still tagged with the issue marker) are recognised on the
  * next run and migrated onto the correct marker instead of spawning a
  * duplicate reply.
+ *
+ * Also verifies that the comment author is a Bot user (`user.type === 'Bot'`).
  */
-function isBotAuthored(body: string | undefined): boolean {
+function isBotAuthored(comment: CommentWithUser): boolean {
+  const body = comment.body;
   if (!body) {
+    return false;
+  }
+  if (comment.user?.type !== 'Bot') {
     return false;
   }
   return body.startsWith(BOT_COMMENT_MARKER) || body.startsWith(BOT_REVIEW_COMMENT_MARKER);
@@ -459,7 +474,7 @@ export async function findPreviousBotComment(
 
   // Collect all bot-authored matches (oldest-first in this endpoint) and pick
   // the highest id = most recent prior bot comment.
-  const matches = allComments.filter(c => isBotAuthored(c.body));
+  const matches = allComments.filter(c => isBotAuthored(c));
   if (matches.length === 0) {
     return undefined;
   }
@@ -530,9 +545,7 @@ export async function findPreviousBotReviewComment(
   const allReviewComments = await listAllReviewComments(deps, owner, repo, issueNumber);
 
   // Newest-first: the first match is the most recent prior reply in this thread.
-  const found = allReviewComments.find(
-    c => c.in_reply_to_id === commentId && isBotAuthored(c.body)
-  );
+  const found = allReviewComments.find(c => c.in_reply_to_id === commentId && isBotAuthored(c));
   if (!found) {
     return undefined;
   }

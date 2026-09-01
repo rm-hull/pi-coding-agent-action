@@ -570,8 +570,12 @@ describe('createFinalComment with updateComment', () => {
     const mockListComments = vi.fn(() =>
       Promise.resolve({
         data: [
-          { id: 42, body: '<!-- pi-coding-agent-comment -->\nprevious response' },
-          { id: 43, body: 'some other comment' },
+          {
+            id: 42,
+            body: '<!-- pi-coding-agent-comment -->\nolder bot response',
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
+          },
+          { id: 43, body: 'some other comment', user: { type: 'User', login: 'octocat' } },
         ],
         headers: {},
         status: 200,
@@ -702,8 +706,14 @@ describe('createFinalComment with updateComment', () => {
             id: 501,
             body: '<!-- pi-coding-agent-review-comment -->\nprevious reply',
             in_reply_to_id: 789,
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
           },
-          { id: 502, body: 'some other review comment', in_reply_to_id: 789 },
+          {
+            id: 502,
+            body: 'some other review comment',
+            in_reply_to_id: 789,
+            user: { type: 'User', login: 'octocat' },
+          },
         ],
         headers: {},
         status: 200,
@@ -827,6 +837,7 @@ describe('createFinalComment with updateComment', () => {
             id: 501,
             body: '<!-- pi-coding-agent-comment -->\nprevious reply',
             in_reply_to_id: 789,
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
           },
         ],
         headers: {},
@@ -928,7 +939,13 @@ describe('createFinalComment with updateComment', () => {
   test('does not consult review comments when the trigger is a top-level issue comment', async () => {
     const mockListComments = vi.fn(() =>
       Promise.resolve({
-        data: [{ id: 42, body: '<!-- pi-coding-agent-comment -->\nprevious response' }],
+        data: [
+          {
+            id: 42,
+            body: '<!-- pi-coding-agent-comment -->\nprevious response',
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
+          },
+        ],
         headers: {},
         status: 200,
         url: '',
@@ -984,10 +1001,12 @@ describe('createFinalComment with updateComment', () => {
           {
             id: 42,
             body: '<!-- pi-coding-agent-comment -->\nolder bot response',
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
           },
           {
             id: 88,
             body: '<!-- pi-coding-agent-comment -->\nnewer bot response',
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
           },
         ],
         headers: {},
@@ -1031,7 +1050,13 @@ describe('createFinalComment with updateComment', () => {
     // should fall through to createComment so the comment is not lost entirely.
     const mockListComments = vi.fn(() =>
       Promise.resolve({
-        data: [{ id: 88, body: '<!-- pi-coding-agent-comment -->\nold bot response' }],
+        data: [
+          {
+            id: 88,
+            body: '<!-- pi-coding-agent-comment -->\nold bot response',
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
+          },
+        ],
         headers: {},
         status: 200,
         url: '',

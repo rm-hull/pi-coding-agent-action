@@ -20,6 +20,7 @@ describe('comments pagination and loop breaks', () => {
           data: Array.from({ length: 99 }, (_, i) => ({
             id: i + 1,
             body: i === 49 ? '<!-- pi-coding-agent-comment -->\nmatch' : 'comment',
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
           })),
         });
       }
@@ -65,6 +66,7 @@ describe('comments pagination and loop breaks', () => {
             body:
               i === 2 ? '<!-- pi-coding-agent-review-comment -->\nreview match' : 'review comment',
             in_reply_to_id: 789,
+            user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
           })),
         });
       }
@@ -101,11 +103,23 @@ describe('comments pagination and loop breaks', () => {
     // Verify we pick the highest-id bot-authored comment.
     const listComments = vi.fn().mockResolvedValue({
       data: [
-        { id: 10, body: 'regular comment' },
-        { id: 20, body: '<!-- pi-coding-agent-comment -->\nold match 1' },
-        { id: 30, body: 'regular comment' },
-        { id: 40, body: '<!-- pi-coding-agent-comment -->\nnewer match 2' },
-        { id: 50, body: '<!-- pi-coding-agent-comment -->\nnewest match 3' },
+        { id: 10, body: 'regular comment', user: { type: 'User', login: 'u1' } },
+        {
+          id: 20,
+          body: '<!-- pi-coding-agent-comment -->\nold match 1',
+          user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
+        },
+        { id: 30, body: 'regular comment', user: { type: 'User', login: 'u2' } },
+        {
+          id: 40,
+          body: '<!-- pi-coding-agent-comment -->\nnewer match 2',
+          user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
+        },
+        {
+          id: 50,
+          body: '<!-- pi-coding-agent-comment -->\nnewest match 3',
+          user: { type: 'Bot', login: 'pi-coding-agent[bot]' },
+        },
       ],
     });
 
