@@ -969,8 +969,7 @@ describe('createFinalComment with updateComment', () => {
     // Regression test for the ordering bug: GitHub returns comments in ascending
     // ID order (oldest first) by default. The bot markers two comments — an
     // older one (id 42) and a newer one (id 88). The code must update id 88,
-    // not id 42. With `direction: 'desc'` the API returns them newest-first,
-    // so `.find()` correctly picks the most recent.
+    // not id 42.
     const mockUpdateComment = vi.fn(() =>
       Promise.resolve({
         data: { id: 88, body: 'updated', html_url: '' },
@@ -983,12 +982,12 @@ describe('createFinalComment with updateComment', () => {
       Promise.resolve({
         data: [
           {
-            id: 88,
-            body: '<!-- pi-coding-agent-comment -->\nnewer bot response',
-          },
-          {
             id: 42,
             body: '<!-- pi-coding-agent-comment -->\nolder bot response',
+          },
+          {
+            id: 88,
+            body: '<!-- pi-coding-agent-comment -->\nnewer bot response',
           },
         ],
         headers: {},

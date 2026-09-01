@@ -374,10 +374,6 @@ async function listAllIssueComments(
   > = [];
   let page = 1;
   while (page <= MAX_COMMENT_PAGES) {
-    // GitHub's issues.listComments endpoint does NOT support `sort`/`direction`
-    // — those params are silently ignored. The endpoint always returns comments
-    // in ascending-ID order (oldest first). We therefore must not send them, and
-    // instead select the highest-id match as the most recent bot comment.
     const comments = await deps.octokit.rest.issues.listComments({
       owner,
       repo,
