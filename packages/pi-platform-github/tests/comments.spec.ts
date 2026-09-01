@@ -986,7 +986,7 @@ describe('createFinalComment with updateComment', () => {
     // Regression test for the ordering bug: GitHub returns comments in ascending
     // ID order (oldest first) by default. The bot markers two comments — an
     // older one (id 42) and a newer one (id 88). The code must update id 88,
-    // not id 42.
+    // not id 42, by selecting the match with the highest ID.
     const mockUpdateComment = vi.fn(() =>
       Promise.resolve({
         data: { id: 88, body: 'updated', html_url: '' },
@@ -1138,7 +1138,11 @@ describe('createFinalComment with updateComment', () => {
     expect(callArgs).not.toHaveProperty('direction');
   });
 
-  test('passes sort=created and direction=desc to listReviewComments', async () => {
+  test('passes sort=created and direction=desc to listReviewComments (review comments support these params)', async () => {
+    // Unlike issues.listComments, pulls.listReviewComments DOES support
+    // sort/direction. We pass `sort: 'created', direction: 'desc'` so the API
+    // returns review comments newest-first, and we select the first bot-authored
+    // match (highest id in this thread) as the most recent prior reply.
     const mockListReviewComments = vi.fn(() =>
       Promise.resolve({
         data: [],
